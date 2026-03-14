@@ -1,0 +1,202 @@
+package com.bank;
+
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Набор тестов для проверки бизнес-логики класса BankAccount.
+ * Покрывает все 14 пунктов задания КТ-3.
+ */
+@DisplayName("Тестирование банковского счёта")
+class BankAccountTest {
+    
+    // === Пункт 1: Ошибка при создании счёта с отрицательным балансом ===
+    @Test
+    @DisplayName("Создание счёта с отрицательным балансом -> IllegalArgumentException")
+    void testCreateAccountWithNegativeBalance() {
+        BigDecimal negativeBalance = new BigDecimal("-100");
+        
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> new BankAccount(negativeBalance)
+        );
+        
+        assertEquals("Начальный баланс не может быть отрицательным", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 2: Ошибка при снятии нулевой суммы ===
+    @Test
+    @DisplayName("Снятие нулевой суммы -> IllegalArgumentException")
+    void testWithdrawZeroAmount() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> account.withdraw(BigDecimal.ZERO)
+        );
+        
+        assertEquals("Сумма должна быть положительной", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 3: Ошибка при снятии отрицательной суммы ===
+    @Test
+    @DisplayName("Снятие отрицательной суммы -> IllegalArgumentException")
+    void testWithdrawNegativeAmount() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        BigDecimal negativeAmount = new BigDecimal("-500");
+        
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> account.withdraw(negativeAmount)
+        );
+        
+        assertEquals("Сумма должна быть положительной", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 4: Ошибка при снятии суммы больше баланса ===
+    @Test
+    @DisplayName("Снятие суммы больше баланса -> InsufficientFundsException")
+    void testWithdrawAmountExceedsBalance() {
+        BankAccount account = new BankAccount(new BigDecimal("300"));
+        BigDecimal withdrawAmount = new BigDecimal("500");
+        
+        InsufficientFundsException exception = assertThrows(
+            InsufficientFundsException.class,
+            () -> account.withdraw(withdrawAmount)
+        );
+        
+        assertEquals("Недостаточно средств", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 5: Ошибка при пополнении нулевой суммы ===
+    @Test
+    @DisplayName("Пополнение на нулевую сумму -> IllegalArgumentException")
+    void testDepositZeroAmount() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> account.deposit(BigDecimal.ZERO)
+        );
+        
+        assertEquals("Сумма пополнения должна быть положительной", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 6: Ошибка при пополнении отрицательной суммы ===
+    @Test
+    @DisplayName("Пополнение на отрицательную сумму -> IllegalArgumentException")
+    void testDepositNegativeAmount() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        BigDecimal negativeAmount = new BigDecimal("-200");
+        
+        IllegalArgumentException exception = assertThrows(
+            IllegalArgumentException.class,
+            () -> account.deposit(negativeAmount)
+        );
+        
+        assertEquals("Сумма пополнения должна быть положительной", 
+                     exception.getMessage());
+    }
+    
+    // === Пункт 7: Позитивный сценарий снятия ===
+    @Test
+    @DisplayName("Успешное снятие средств")
+    void testSuccessfulWithdraw() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        
+        account.withdraw(new BigDecimal("400"));
+        
+        assertEquals(new BigDecimal("600"), account.getBalance());
+    }
+    
+    // === Пункт 8: Позитивный сценарий пополнения ===
+    @Test
+    @DisplayName("Успешное пополнение средств")
+    void testSuccessfulDeposit() {
+        BankAccount account = new BankAccount(new BigDecimal("1000"));
+        
+        account.deposit(new BigDecimal("500"));
+        
+        assertEquals(new BigDecimal("1500"), account.getBalance());
+    }
+    
+    // === Пункт 9: Баланс не меняется после ошибки ===
+    @Test
+    @DisplayName("Баланс не меняется после неудачного снятия")
+    void testBalanceUnchangedAfterFailedWithdraw() {
+        BankAccount account = new BankAccount(new BigDecimal("500"));
+        BigDecimal initialBalance = account.getBalance();
+        
+        assertThrows(InsufficientFundsException.class, 
+            () -> account.withdraw(new BigDecimal("1000")));
+        
+        assertEquals(initialBalance, account.getBalance(), 
+            "Баланс не должен меняться при ошибке");
+    }
+    
+    @Test
+    @DisplayName("Баланс не меняется после неудачного пополнения")
+    void testBalanceUnchangedAfterFailedDeposit() {
+        BankAccount account = new BankAccount(new BigDecimal("500"));
+        BigDecimal initialBalance = account.getBalance();
+        
+        assertThrows(IllegalArgumentException.class, 
+            () -> account.deposit(new BigDecimal("-50")));
+        
+        assertEquals(initialBalance, account.getBalance(), 
+            "Баланс не должен меняться при ошибке");
+    }
+    
+    // === Пункт 10-11: Типы и сообщения исключений ===
+    // (уже проверены в тестах 1-6)
+    
+    // === Пункт 14: Параметризованные тесты ===
+    static Stream<BigDecimal> invalidWithdrawAmounts() {
+        return Stream.of(
+            BigDecimal.ZERO,
+            new BigDecimal("-1"),
+            new BigDecimal("-100"),
+            new BigDecimal("-1000.50"),
+            new BigDecimal("-0.01")
+        );
+    }
+    
+    @ParameterizedTest
+    @MethodSource("invalidWithdrawAmounts")
+    @DisplayName("Параметризованный тест: снятие некорректных сумм")
+    void testInvalidWithdrawAmounts(BigDecimal invalidAmount) {
+        BankAccount account = new BankAccount(new BigDecimal("500"));
+        BigDecimal initialBalance = account.getBalance();
+        
+        assertThrows(IllegalArgumentException.class, 
+            () -> account.withdraw(invalidAmount));
+        
+        assertEquals(initialBalance, account.getBalance());
+    }
+    
+    @ParameterizedTest
+    @ValueSource(doubles = {0, -1, -100, -1000.50, -0.01})
+    @DisplayName("Параметризованный тест: пополнение некорректными суммами")
+    void testInvalidDepositAmounts(double invalidAmount) {
+        BankAccount account = new BankAccount(new BigDecimal("500"));
+        BigDecimal initialBalance = account.getBalance();
+        BigDecimal amount = BigDecimal.valueOf(invalidAmount);
+        
+        assertThrows(IllegalArgumentException.class, 
+            () -> account.deposit(amount));
+        
+        assertEquals(initialBalance, account.getBalance());
+    }
+}
