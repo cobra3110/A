@@ -11,7 +11,7 @@ public class Main {
         System.out.println();
 
         //2
-        int[] numbers1 = {5, 12, 3, 8, 20, 1, 15};
+        int[] numbers1 = {7, 23, 23, 2, 23, 15};
         int maxElement = numbers1[0];
         int maxIndex = 0;
 
